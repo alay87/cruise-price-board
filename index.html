@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Cruise Price Board</title>
+<style>
+:root{--bg:#f6f1e7;--card:#fffdf8;--ink:#2b2620;--mute:#7a6f60;--line:#e4dccb;--accent:#d8553a;--good:#2f7d4f;--bad:#a8402c;--chart:#d8553a;--paid:#2b2620}
+@media (prefers-color-scheme:dark){:root{--bg:#1f1b16;--card:#2a251e;--ink:#f1e9da;--mute:#a89c88;--line:#40382d;--accent:#ee7a5e;--good:#6cc08a;--bad:#ee8d78;--chart:#ee7a5e;--paid:#f1e9da}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:28px 16px 48px}
+h1{font:600 28px/1.15 Georgia,"Times New Roman",serif;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;margin-bottom:14px}
+.now{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.big{font:600 44px/1 Georgia,serif;letter-spacing:-.5px}
+.verdict{font-weight:600}
+.verdict.good{color:var(--good)}.verdict.bad{color:var(--bad)}
+.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:0 0 6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stats b{display:block;font:600 20px Georgia,serif}
+.paidrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;color:var(--mute);font-size:14px}
+.paidrow input{width:120px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+svg{width:100%;height:auto;display:block}
+.addon{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}
+.addon:first-of-type{border-top:0}
+.foot{color:var(--mute);font-size:13px;margin-top:18px}
+.err{color:var(--bad)}
+@media (max-width:480px){.big{font-size:38px}.stats b{font-size:17px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Cruise Price Board</h1>
+  <p class="sub" id="sub">Loading prices…</p>
+
+  <div class="card">
+    <p class="label">Price now</p>
+    <div class="now"><span class="big" id="now">…</span><span class="verdict" id="verdict"></span></div>
+    <div class="paidrow">
+      <label for="paid">What I paid (CAD)</label>
+      <input id="paid" inputmode="decimal" placeholder="e.g. 5000" autocomplete="off">
+      <span>Saved only in this browser.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="label">Price history</p>
+    <div id="chart"></div>
+  </div>
+
+  <div class="card">
+    <div class="stats">
+      <div><p class="label">Lowest</p><b id="low">…</b></div>
+      <div><p class="label">Highest</p><b id="high">…</b></div>
+      <div><p class="label">Checks</p><b id="n">…</b></div>
+    </div>
+  </div>
+
+  <div class="card" id="addons"></div>
+  <p class="foot" id="foot"></p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const money = x => x == null ? "n/a" : "CA$" + Number(x).toLocaleString("en-CA", {maximumFractionDigits: 0});
+const money2 = x => x == null ? "n/a" : "CA$" + Number(x).toFixed(2);
+let DATA = null;
+
+function getPaid(){
+  const m = location.hash.match(/paid=([\d.]+)/);
+  if (m) return parseFloat(m[1]);
+  try { const v = localStorage.getItem("paid"); return v ? parseFloat(v) : null; } catch(e){ return null; }
+}
+function setPaid(v){ try { v ? localStorage.setItem("paid", v) : localStorage.removeItem("paid"); } catch(e){} }
+
+function render(){
+  const h = DATA.history; if (!h.length) { $("sub").textContent = "No prices yet."; return; }
+  const last = h[h.length-1], prices = h.map(p => p.xq);
+  const paid = getPaid();
+  $("sub").textContent = DATA.ship + " · sails " + DATA.sail + " · category " + DATA.category;
+  $("now").textContent = money(last.xq);
+  const v = $("verdict");
+  if (paid){
+    const d = paid - last.xq;
+    v.className = "verdict " + (d > 0 ? "good" : "bad");
+    v.textContent = d > 0 ? money(d) + " below what you paid" : d < 0 ? money(-d) + " above what you paid" : "Same as you paid";
+  } else { v.className = "verdict"; v.textContent = ""; }
+  $("low").textContent = money(Math.min(...prices));
+  $("high").textContent = money(Math.max(...prices));
+  $("n").textContent = h.length;
+  drawChart(h, paid);
+  const a = [["Refreshment Package", last.refreshment], ["VOOM Internet", last.voom]];
+  $("addons").innerHTML = '<p class="label">Add-ons, per day</p>' + a.map(x => '<div class="addon"><span>' + x[0] + '</span><b>' + money2(x[1]) + '</b></div>').join("");
+  const d = new Date(DATA.updated);
+  $("foot").textContent = "Last checked " + d.toLocaleString("en-CA", {dateStyle:"medium", timeStyle:"short"}) + ". Prices are the public Royal Caribbean fare for 2 adults and 2 children, in CAD.";
+}
+
+function drawChart(h, paid){
+  const W = Math.max(280, $("chart").clientWidth || 640), H = 230, L = 66, R = 12, T = 14, B = 28;
+  const ts = h.map(p => +new Date(p.t)), ys = h.map(p => p.xq);
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  if (paid) { lo = Math.min(lo, paid); hi = Math.max(hi, paid); }
+  const pad = Math.max(20, (hi - lo) * 0.15); lo -= pad; hi += pad;
+  const t0 = Math.min(...ts), t1 = Math.max(Math.max(...ts), t0 + 36e5);
+  const X = t => L + (t - t0) / (t1 - t0) * (W - L - R), Y = y => T + (hi - y) / (hi - lo) * (H - T - B);
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="XQ price history">';
+  for (let i = 0; i <= 3; i++){
+    const y = lo + (hi - lo) * i / 3;
+    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(y) + '" y2="' + Y(y) + '" stroke="var(--line)"/>';
+    s += '<text x="' + (L - 8) + '" y="' + (Y(y) + 4) + '" text-anchor="end" font-size="12" fill="var(--mute)">' + money(y) + '</text>';
+  }
+  const fmt = t => new Date(t).toLocaleDateString("en-CA", {month:"short", day:"numeric"});
+  s += '<text x="' + L + '" y="' + (H - 8) + '" font-size="12" fill="var(--mute)">' + fmt(t0) + '</text>';
+  s += '<text x="' + (W - R) + '" y="' + (H - 8) + '" text-anchor="end" font-size="12" fill="var(--mute)">' + fmt(t1) + '</text>';
+  if (paid) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(paid) + '" y2="' + Y(paid) + '" stroke="var(--paid)" stroke-dasharray="5 5"/>' +
+    '<text x="' + (W - R) + '" y="' + (Y(paid) - 6) + '" text-anchor="end" font-size="12" fill="var(--paid)">You paid ' + money(paid) + '</text>';
+  const pts = h.map((p, i) => X(ts[i]) + "," + Y(p.xq)).join(" ");
+  s += '<polyline points="' + pts + '" fill="none" stroke="var(--chart)" stroke-width="2.5" stroke-linejoin="round"/>';
+  const lx = X(ts[ts.length - 1]), ly = Y(ys[ys.length - 1]);
+  s += '<circle cx="' + lx + '" cy="' + ly + '" r="5" fill="var(--chart)"/></svg>';
+  $("chart").innerHTML = s;
+}
+
+$("paid").addEventListener("input", e => {
+  const v = parseFloat(e.target.value.replace(/[^\d.]/g, ""));
+  setPaid(isNaN(v) ? "" : v); if (DATA) render();
+});
+window.addEventListener("resize", () => { if (DATA) render(); });
+fetch("prices.json?" + Date.now()).then(r => r.json()).then(d => {
+  DATA = d;
+  const p = getPaid(); if (p) $("paid").value = p;
+  render();
+}).catch(() => { $("sub").innerHTML = '<span class="err">Could not load prices.</span>'; });
+</script>
+</body>
+</html>
