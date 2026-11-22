@@ -84,6 +84,11 @@ svg{display:block;width:100%;height:auto}
 .oi .pr .badge{font-size:12px;margin-left:6px;padding:1px 8px}
 .more{display:block;width:100%;margin-top:8px;padding:9px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);font:inherit;cursor:pointer}
 .sub{color:var(--mute);font-size:13px;margin:-2px 0 10px}
+.star{background:none;border:0;cursor:pointer;font-size:20px;line-height:1;color:var(--mute);padding:8px 8px 8px 0;margin:-8px 0 -8px -2px;vertical-align:-1px}
+.star.on{color:var(--accent2)}
+.star:hover{color:var(--accent2)}
+.favhead{margin:12px 0 2px;padding-top:10px;border-top:1px solid var(--line)}
+.hint{color:var(--mute);font-size:13px;margin:10px 0 0}
 .foot{color:var(--mute);font-size:13px;margin:6px 4px 0}
 .err{color:var(--bad)}
 @media (max-width:560px){
@@ -306,10 +311,23 @@ function spark(vals){
   const pts = v.map((y, i) => (i / (v.length - 1) * (W - 6) + 3) + "," + (H - 4 - (y - lo) / r * (H - 8))).join(" ");
   return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="120" height="30"><polyline points="' + pts + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/></svg>';
 }
+function getFavs(){ try { return JSON.parse(localStorage.getItem("favs") || "[]"); } catch(e){ return []; } }
+function setFavs(a){ try { localStorage.setItem("favs", JSON.stringify(a)); } catch(e){} }
+function toggleFav(id){ const f = getFavs(), i = f.indexOf(id); if (i >= 0) f.splice(i, 1); else f.push(id); setFavs(f); drawAddons(); drawOthers(); }
+function itemRow(x, fav){
+  const d = x.p - x.f, ch = Math.abs(d) > 0.004, pc = Math.abs((x.p - x.f) / x.f);
+  return '<div class="oi"><span class="t"><button class="star' + (fav ? " on" : "") + '" data-id="' + esc(x.id) + '" aria-label="' + (fav ? "Remove from favourites" : "Add to favourites") + '">' + (fav ? "★" : "☆") + '</button>' + esc(x.t) + '</span><span class="pr">' + money2(x.p) +
+    (ch ? '<span class="badge ' + (d < 0 ? "down" : "up") + '">' + (d < 0 ? "▼ " : "▲ ") + Math.round(pc * 100) + '%</span>' : "") + '</span>' +
+    '<span class="m">' + esc(x.c) + '</span><span class="m" style="text-align:right">' + esc((x.u || "").toLowerCase()) + (ch ? " · was " + money2(x.f) : "") + '</span></div>';
+}
 function drawAddons(){
   const h = DATA.history, last = h[h.length-1];
   const rows = [["Refreshment Package", "refreshment"], ["VOOM Internet", "voom"]];
-  $("addons").innerHTML = '<p class="label">Add-ons, per day</p>' + rows.map(r => '<div class="addon"><span>' + r[0] + '</span>' + spark(h.map(p => p[r[1]])) + '<b>' + money2(last[r[1]]) + '</b></div>').join("");
+  const favIds = getFavs(), favs = (DATA.others || []).filter(x => favIds.includes(x.id));
+  let html = '<p class="label">Your add-ons</p>' + rows.map(r => '<div class="addon"><span>' + r[0] + '</span>' + spark(h.map(p => p[r[1]])) + '<b>' + money2(last[r[1]]) + '</b></div>').join("");
+  if (favs.length) html += '<p class="label favhead">Favourites</p>' + favs.map(x => itemRow(x, true)).join("");
+  else if ((DATA.others || []).length) html += '<p class="hint">Tap ☆ on any item in the list below to pin it here.</p>';
+  $("addons").innerHTML = html;
 }
 
 let OCAT = "All", OMODE = "all", OLIM = 15;
@@ -318,19 +336,18 @@ function drawOthers(){
   const cats = ["All"].concat([...new Set(all.map(x => x.c))].sort());
   $("ocats").innerHTML = cats.map(c => '<button class="' + (c === OCAT ? "on" : "") + '" data-c="' + esc(c) + '">' + esc(c) + '</button>').join("");
   const q = $("q").value.trim().toLowerCase();
-  let list = all.filter(x => (OCAT === "All" || x.c === OCAT) && (!q || x.t.toLowerCase().includes(q)) && (OMODE === "all" || Math.abs(x.p - x.f) > 0.004));
+  let list = all.filter(x => !getFavs().includes(x.id) && (OCAT === "All" || x.c === OCAT) && (!q || x.t.toLowerCase().includes(q)) && (OMODE === "all" || Math.abs(x.p - x.f) > 0.004));
   const pct = x => (x.p - x.f) / x.f;
   list.sort((a, b) => (Math.abs(pct(b)) > 0.0001) - (Math.abs(pct(a)) > 0.0001) || pct(a) - pct(b) || a.t.localeCompare(b.t));
   const show = list.slice(0, OLIM);
-  $("olist").innerHTML = show.length ? show.map(x => { const d = x.p - x.f, ch = Math.abs(d) > 0.004;
-    return '<div class="oi"><span class="t">' + esc(x.t) + '</span><span class="pr">' + money2(x.p) + (ch ? '<span class="badge ' + (d < 0 ? "down" : "up") + '">' + (d < 0 ? "▼ " : "▲ ") + Math.round(Math.abs(pct(x)) * 100) + '%</span>' : "") + '</span>' +
-      '<span class="m">' + esc(x.c) + '</span><span class="m" style="text-align:right">' + esc((x.u || "").toLowerCase()) + (ch ? " · was " + money2(x.f) : "") + '</span></div>'; }).join("")
+  $("olist").innerHTML = show.length ? show.map(x => itemRow(x, false)).join("")
     : '<p class="foot">' + (OMODE === "chg" ? "No price changes yet in this view." : "Nothing matches.") + '</p>';
   const more = $("omore"); more.style.display = list.length > OLIM ? "" : "none"; more.textContent = "Show more (" + (list.length - OLIM) + " left)";
 }
 $("ocats").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; OCAT = b.dataset.c; OLIM = 15; drawOthers(); });
 $("oseg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; OMODE = b.dataset.m; OLIM = 15;
   document.querySelectorAll("#oseg button").forEach(x => x.classList.toggle("on", x === b)); drawOthers(); });
+document.addEventListener("click", e => { const b = e.target.closest(".star"); if (b) toggleFav(b.dataset.id); });
 $("omore").addEventListener("click", () => { OLIM += 25; drawOthers(); });
 $("q").addEventListener("input", () => { OLIM = 15; drawOthers(); });
 
