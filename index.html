@@ -4,69 +4,164 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Cruise Price Board</title>
+<title>Cruise Price Watch</title>
 <style>
-:root{--bg:#f6f1e7;--card:#fffdf8;--ink:#2b2620;--mute:#7a6f60;--line:#e4dccb;--accent:#d8553a;--good:#2f7d4f;--bad:#a8402c;--chart:#d8553a;--paid:#2b2620}
-@media (prefers-color-scheme:dark){:root{--bg:#1f1b16;--card:#2a251e;--ink:#f1e9da;--mute:#a89c88;--line:#40382d;--accent:#ee7a5e;--good:#6cc08a;--bad:#ee8d78;--chart:#ee7a5e;--paid:#f1e9da}}
+:root{
+  --bg:#f5efe4;--card:#fffdf8;--ink:#2a241d;--mute:#7b705f;--line:#e6ddca;
+  --accent:#d8553a;--accent2:#f2a65a;--good:#2c7a4b;--goodbg:#e3f3e8;--bad:#a8402c;--badbg:#fbe6df;
+  --sea1:#f8c98e;--sea2:#ee7d5b;--sea3:#c44a3f;--wave:#f5efe4;--shadow:0 1px 2px rgba(60,40,20,.06),0 8px 24px rgba(60,40,20,.06)
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#1c1814;--card:#27221b;--ink:#f3eadb;--mute:#aa9e8a;--line:#3d3529;
+  --accent:#ef7b5e;--accent2:#f4b06a;--good:#72c690;--goodbg:#1f3a29;--bad:#f09580;--badbg:#42251d;
+  --sea1:#7a4a3a;--sea2:#a14a3a;--sea3:#5b2b2a;--wave:#1c1814;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25)
+}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-main{max-width:760px;margin:0 auto;padding:28px 16px 48px}
-h1{font:600 28px/1.15 Georgia,"Times New Roman",serif;margin:0 0 4px}
-.sub{color:var(--mute);margin:0 0 22px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;margin-bottom:14px}
-.now{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
-.big{font:600 44px/1 Georgia,serif;letter-spacing:-.5px}
-.verdict{font-weight:600}
-.verdict.good{color:var(--good)}.verdict.bad{color:var(--bad)}
-.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:0 0 6px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.stats b{display:block;font:600 20px Georgia,serif}
+.serif{font-family:Georgia,"Times New Roman",serif}
+.hero{position:relative;color:#fff;background:linear-gradient(180deg,var(--sea1) 0%,var(--sea2) 55%,var(--sea3) 100%);overflow:hidden}
+.hero .in{max-width:780px;margin:0 auto;padding:30px 16px 76px;position:relative;z-index:2}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.92;margin:0 0 6px}
+.hero h1{font:600 clamp(30px,6vw,42px)/1.1 Georgia,serif;margin:0 0 16px;text-shadow:0 1px 8px rgba(120,40,20,.25)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(4px);border-radius:999px;padding:5px 13px;font-size:14px}
+.chip b{font-weight:700}
+.sun{position:absolute;right:8%;top:22px;width:92px;height:92px;border-radius:50%;background:radial-gradient(circle,#fff6d9 0,#ffe6a3 55%,rgba(255,230,163,0) 72%);opacity:.9;z-index:1}
+.ship{position:absolute;right:5%;bottom:34px;width:min(260px,46%);z-index:1;opacity:.95}
+.waves{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:46px;z-index:3}
+main{max-width:780px;margin:-26px auto 0;padding:0 16px 48px;position:relative;z-index:4}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.label{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin:0 0 8px}
+.now{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px}
+.big{font:600 clamp(40px,9vw,54px)/1 Georgia,serif;letter-spacing:-1px}
+.delta{font-weight:600;font-size:15px;padding:3px 10px;border-radius:999px}
+.delta.down{background:var(--goodbg);color:var(--good)}.delta.up{background:var(--badbg);color:var(--bad)}.delta.flat{background:var(--line);color:var(--mute)}
+.banner{margin-top:14px;border-radius:12px;padding:12px 14px;font-weight:600;display:flex;gap:10px;align-items:center}
+.banner.good{background:var(--goodbg);color:var(--good)}.banner.bad{background:var(--badbg);color:var(--bad)}.banner.neutral{background:var(--line);color:var(--mute);font-weight:500}
+.banner .dot{width:10px;height:10px;border-radius:50%;background:currentColor;flex:none;animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 currentColor}70%{box-shadow:0 0 0 9px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.banner .dot{animation:none}}
 .paidrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;color:var(--mute);font-size:14px}
-.paidrow input{width:120px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
-svg{width:100%;height:auto;display:block}
-.addon{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}
+.paidrow input{width:118px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--mute);font:inherit;font-size:13px;padding:5px 13px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+#chart{position:relative}
+svg{display:block;width:100%;height:auto}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);border-radius:8px;padding:6px 10px;font-size:13px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .1s}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tile b{display:block;font:600 20px Georgia,serif}
+.tile small{color:var(--mute);font-size:12px}
+.moves{list-style:none;margin:0;padding:0}
+.moves li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.moves li:first-child{border-top:0}
+.moves time{color:var(--mute);font-size:14px}
+.badge{font-weight:600;font-size:14px;padding:2px 10px;border-radius:999px;white-space:nowrap}
+.badge.down{background:var(--goodbg);color:var(--good)}.badge.up{background:var(--badbg);color:var(--bad)}
+.ladder .row{display:grid;grid-template-columns:minmax(120px,38%) 1fr 74px;gap:10px;align-items:center;padding:6px 0;font-size:14px}
+.ladder .row>b{text-align:right}
+.ladder .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ladder .nm i{font-style:normal;color:var(--mute);font-size:12px}
+.ladder .bar{height:12px;border-radius:6px;background:var(--line);position:relative}
+.ladder .bar span{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--mute);opacity:.5}
+.ladder .row.me .bar span{background:var(--accent);opacity:1}
+.ladder .row.me{font-weight:700}
+.ladder .pd{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed var(--ink)}
+.addon{display:grid;grid-template-columns:1fr 120px auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .addon:first-of-type{border-top:0}
-.foot{color:var(--mute);font-size:13px;margin-top:18px}
+.addon b{font-variant-numeric:tabular-nums}
+.addon svg{width:120px;height:30px}
+.foot{color:var(--mute);font-size:13px;margin:6px 4px 0}
 .err{color:var(--bad)}
-@media (max-width:480px){.big{font-size:38px}.stats b{font-size:17px}}
+@media (max-width:560px){
+  .tiles{grid-template-columns:repeat(2,1fr)}
+  .ladder .row{grid-template-columns:1fr auto;grid-template-areas:"n p" "b b"}
+  .ladder .nm{grid-area:n}.ladder .bar{grid-area:b}.ladder .row>b{grid-area:p}
+  .addon{grid-template-columns:1fr 84px auto}.addon svg{width:84px}
+  .sun{width:64px;height:64px}.ship{width:44%;bottom:30px}
+}
 </style>
 </head>
 <body>
-<main>
-  <h1>Cruise Price Board</h1>
-  <p class="sub" id="sub">Loading prices…</p>
+<header class="hero">
+  <div class="sun"></div>
+  <svg class="ship" viewBox="0 0 300 120" aria-hidden="true">
+    <g fill="#fff" fill-opacity=".92">
+      <path d="M10 82 L290 82 L268 104 Q262 108 252 108 L52 108 Q42 108 36 104 Z"/>
+      <rect x="40" y="62" width="214" height="20" rx="3"/>
+      <rect x="62" y="44" width="170" height="18" rx="3"/>
+      <rect x="92" y="28" width="108" height="16" rx="3"/>
+      <rect x="128" y="14" width="34" height="14" rx="3"/>
+      <rect x="216" y="30" width="12" height="32" rx="2"/>
+    </g>
+    <g fill="#ee7d5b" fill-opacity=".55">
+      <rect x="52" y="68" width="190" height="3"/><rect x="74" y="50" width="146" height="3"/><rect x="100" y="33" width="92" height="3"/>
+      <circle cx="70" cy="95" r="3"/><circle cx="100" cy="95" r="3"/><circle cx="130" cy="95" r="3"/><circle cx="160" cy="95" r="3"/><circle cx="190" cy="95" r="3"/><circle cx="220" cy="95" r="3"/>
+    </g>
+  </svg>
+  <div class="in">
+    <p class="eyebrow" id="eyebrow">Star of the Seas</p>
+    <h1>Cruise Price Watch</h1>
+    <div class="chips" id="chips"></div>
+  </div>
+  <svg class="waves" viewBox="0 0 1440 46" preserveAspectRatio="none" aria-hidden="true">
+    <path fill="var(--wave)" fill-opacity=".5" d="M0 22 C180 4 360 40 540 22 S900 4 1080 22 S1320 36 1440 18 V46 H0Z"/>
+    <path fill="var(--wave)" d="M0 32 C200 14 380 44 600 30 S980 16 1180 32 S1360 40 1440 30 V46 H0Z"/>
+  </svg>
+</header>
 
-  <div class="card">
+<main>
+  <section class="card">
     <p class="label">Price now</p>
-    <div class="now"><span class="big" id="now">…</span><span class="verdict" id="verdict"></span></div>
+    <div class="now"><span class="big" id="now">…</span><span class="delta flat" id="delta"></span></div>
+    <div class="banner neutral" id="banner" style="display:none"></div>
     <div class="paidrow">
       <label for="paid">What I paid (CAD)</label>
       <input id="paid" inputmode="decimal" placeholder="e.g. 5000" autocomplete="off">
       <span>Saved only in this browser.</span>
     </div>
-  </div>
+  </section>
 
-  <div class="card">
-    <p class="label">Price history</p>
-    <div id="chart"></div>
-  </div>
-
-  <div class="card">
-    <div class="stats">
-      <div><p class="label">Lowest</p><b id="low">…</b></div>
-      <div><p class="label">Highest</p><b id="high">…</b></div>
-      <div><p class="label">Checks</p><b id="n">…</b></div>
+  <section class="card">
+    <div class="head">
+      <p class="label" style="margin:0">Price history</p>
+      <div class="seg" id="seg"><button data-r="1">Day</button><button data-r="7">Week</button><button data-r="0" class="on">All</button></div>
     </div>
-  </div>
+    <div id="chart"><div class="tip" id="tip"></div></div>
+  </section>
 
-  <div class="card" id="addons"></div>
+  <section class="card">
+    <div class="tiles">
+      <div class="tile"><p class="label">Lowest</p><b id="low">…</b><small id="lowd"></small></div>
+      <div class="tile"><p class="label">Highest</p><b id="high">…</b><small id="highd"></small></div>
+      <div class="tile"><p class="label">Average</p><b id="avg">…</b></div>
+      <div class="tile"><p class="label">Checks</p><b id="n">…</b><small id="span"></small></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <p class="label">Price moves</p>
+    <ul class="moves" id="moves"></ul>
+  </section>
+
+  <section class="card ladder" id="ladderCard" style="display:none">
+    <p class="label">Balcony cabins right now</p>
+    <div id="ladder"></div>
+  </section>
+
+  <section class="card" id="addons"></section>
   <p class="foot" id="foot"></p>
 </main>
+
 <script>
 const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money = x => x == null ? "n/a" : "CA$" + Number(x).toLocaleString("en-CA", {maximumFractionDigits: 0});
 const money2 = x => x == null ? "n/a" : "CA$" + Number(x).toFixed(2);
-let DATA = null;
+const fmtDT = t => new Date(t).toLocaleString("en-CA", {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+const fmtD = t => new Date(t).toLocaleDateString("en-CA", {month:"short", day:"numeric"});
+let DATA = null, RANGE = 0;
 
 function getPaid(){
   const m = location.hash.match(/paid=([\d.]+)/);
@@ -75,64 +170,133 @@ function getPaid(){
 }
 function setPaid(v){ try { v ? localStorage.setItem("paid", v) : localStorage.removeItem("paid"); } catch(e){} }
 
-function render(){
-  const h = DATA.history; if (!h.length) { $("sub").textContent = "No prices yet."; return; }
-  const last = h[h.length-1], prices = h.map(p => p.xq);
-  const paid = getPaid();
-  $("sub").textContent = DATA.ship + " · sails " + DATA.sail + " · category " + DATA.category;
-  $("now").textContent = money(last.xq);
-  const v = $("verdict");
-  if (paid){
-    const d = paid - last.xq;
-    v.className = "verdict " + (d > 0 ? "good" : "bad");
-    v.textContent = d > 0 ? money(d) + " below what you paid" : d < 0 ? money(-d) + " above what you paid" : "Same as you paid";
-  } else { v.className = "verdict"; v.textContent = ""; }
-  $("low").textContent = money(Math.min(...prices));
-  $("high").textContent = money(Math.max(...prices));
-  $("n").textContent = h.length;
-  drawChart(h, paid);
-  const a = [["Refreshment Package", last.refreshment], ["VOOM Internet", last.voom]];
-  $("addons").innerHTML = '<p class="label">Add-ons, per day</p>' + a.map(x => '<div class="addon"><span>' + x[0] + '</span><b>' + money2(x[1]) + '</b></div>').join("");
-  const d = new Date(DATA.updated);
-  $("foot").textContent = "Last checked " + d.toLocaleString("en-CA", {dateStyle:"medium", timeStyle:"short"}) + ". Prices are the public Royal Caribbean fare for 2 adults and 2 children, in CAD.";
+function ago(t){
+  const m = Math.round((Date.now() - new Date(t)) / 60000);
+  if (m < 2) return "just now"; if (m < 90) return m + " min ago";
+  const h = Math.round(m / 60); if (h < 36) return h + " hr ago";
+  return Math.round(h / 24) + " days ago";
 }
 
-function drawChart(h, paid){
-  const W = Math.max(280, $("chart").clientWidth || 640), H = 230, L = 66, R = 12, T = 14, B = 28;
+function render(){
+  const h = DATA.history; if (!h.length){ $("eyebrow").textContent = "No prices yet"; return; }
+  const last = h[h.length-1], first = h[0], prices = h.map(p => p.xq), paid = getPaid();
+  const lowI = prices.indexOf(Math.min(...prices)), highI = prices.indexOf(Math.max(...prices));
+  const sailDays = Math.ceil((new Date(DATA.sail + "T12:00:00") - Date.now()) / 864e5);
+
+  $("eyebrow").textContent = DATA.ship + " · sails " + new Date(DATA.sail + "T12:00:00").toLocaleDateString("en-CA", {month:"long", day:"numeric", year:"numeric"});
+  $("chips").innerHTML = '<span class="chip"><b>' + sailDays + '</b> days to sail</span>' +
+    '<span class="chip">Category <b>' + esc(DATA.category) + '</b> balcony</span>' +
+    '<span class="chip">Checked <b>' + ago(last.t) + '</b></span>';
+
+  $("now").textContent = money(last.xq);
+  const dl = $("delta"), ch = last.xq - first.xq;
+  dl.className = "delta " + (ch < 0 ? "down" : ch > 0 ? "up" : "flat");
+  dl.textContent = ch === 0 ? "No change since first check" : (ch < 0 ? "▼ " : "▲ ") + money(Math.abs(ch)) + " since first check";
+
+  const b = $("banner");
+  if (paid){
+    const d = paid - last.xq; b.style.display = "flex";
+    if (d > 0){ b.className = "banner good"; b.innerHTML = '<span class="dot"></span><span>' + money(d) + ' below what you paid. Time to call and reprice.</span>'; }
+    else if (d < 0){ b.className = "banner bad"; b.innerHTML = '<span>' + money(-d) + ' above what you paid. Your booking is the better deal.</span>'; }
+    else { b.className = "banner neutral"; b.textContent = "Same as what you paid."; }
+  } else { b.style.display = "none"; }
+
+  $("low").textContent = money(prices[lowI]); $("lowd").textContent = fmtD(h[lowI].t);
+  $("high").textContent = money(prices[highI]); $("highd").textContent = fmtD(h[highI].t);
+  $("avg").textContent = money(prices.reduce((a, c) => a + c, 0) / prices.length);
+  $("n").textContent = h.length;
+  const days = Math.max(1, Math.round((new Date(last.t) - new Date(first.t)) / 864e5));
+  $("span").textContent = "over " + days + (days === 1 ? " day" : " days");
+
+  drawChart(paid);
+  drawMoves(); drawLadder(paid); drawAddons();
+  $("foot").textContent = "Last checked " + fmtDT(last.t) + " · Public Royal Caribbean fare for 2 adults and 2 children, in CAD, taxes and fees included.";
+}
+
+function visible(){
+  const h = DATA.history; if (!RANGE) return h;
+  const cut = new Date(h[h.length-1].t).getTime() - RANGE * 864e5;
+  const v = h.filter(p => +new Date(p.t) >= cut); return v.length >= 2 ? v : h.slice(-2);
+}
+
+function drawChart(paid){
+  const h = visible(), box = $("chart");
+  const W = Math.max(280, box.clientWidth || 640), H = 240, L = 74, R = 14, T = 16, B = 28;
   const ts = h.map(p => +new Date(p.t)), ys = h.map(p => p.xq);
   let lo = Math.min(...ys), hi = Math.max(...ys);
-  if (paid) { lo = Math.min(lo, paid); hi = Math.max(hi, paid); }
-  const pad = Math.max(20, (hi - lo) * 0.15); lo -= pad; hi += pad;
+  if (paid){ lo = Math.min(lo, paid); hi = Math.max(hi, paid); }
+  const pad = Math.max(25, (hi - lo) * 0.18); lo -= pad; hi += pad;
   const t0 = Math.min(...ts), t1 = Math.max(Math.max(...ts), t0 + 36e5);
   const X = t => L + (t - t0) / (t1 - t0) * (W - L - R), Y = y => T + (hi - y) / (hi - lo) * (H - T - B);
-  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="XQ price history">';
+  let s = '<svg id="cs" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Price history chart"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".30"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>';
   for (let i = 0; i <= 3; i++){
     const y = lo + (hi - lo) * i / 3;
-    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(y) + '" y2="' + Y(y) + '" stroke="var(--line)"/>';
-    s += '<text x="' + (L - 8) + '" y="' + (Y(y) + 4) + '" text-anchor="end" font-size="12" fill="var(--mute)">' + money(y) + '</text>';
+    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(y) + '" y2="' + Y(y) + '" stroke="var(--line)"/><text x="' + (L - 8) + '" y="' + (Y(y) + 4) + '" text-anchor="end" font-size="12" fill="var(--mute)">' + money(y) + '</text>';
   }
-  const fmt = t => new Date(t).toLocaleDateString("en-CA", {month:"short", day:"numeric"});
-  s += '<text x="' + L + '" y="' + (H - 8) + '" font-size="12" fill="var(--mute)">' + fmt(t0) + '</text>';
-  s += '<text x="' + (W - R) + '" y="' + (H - 8) + '" text-anchor="end" font-size="12" fill="var(--mute)">' + fmt(t1) + '</text>';
-  if (paid) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(paid) + '" y2="' + Y(paid) + '" stroke="var(--paid)" stroke-dasharray="5 5"/>' +
-    '<text x="' + (W - R) + '" y="' + (Y(paid) - 6) + '" text-anchor="end" font-size="12" fill="var(--paid)">You paid ' + money(paid) + '</text>';
-  const pts = h.map((p, i) => X(ts[i]) + "," + Y(p.xq)).join(" ");
-  s += '<polyline points="' + pts + '" fill="none" stroke="var(--chart)" stroke-width="2.5" stroke-linejoin="round"/>';
-  const lx = X(ts[ts.length - 1]), ly = Y(ys[ys.length - 1]);
-  s += '<circle cx="' + lx + '" cy="' + ly + '" r="5" fill="var(--chart)"/></svg>';
-  $("chart").innerHTML = s;
+  s += '<text x="' + L + '" y="' + (H - 8) + '" font-size="12" fill="var(--mute)">' + fmtD(t0) + '</text><text x="' + (W - R) + '" y="' + (H - 8) + '" text-anchor="end" font-size="12" fill="var(--mute)">' + fmtD(t1) + '</text>';
+  if (paid) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(paid) + '" y2="' + Y(paid) + '" stroke="var(--ink)" stroke-dasharray="5 5" opacity=".7"/><text x="' + (W - R) + '" y="' + (Y(paid) - 6) + '" text-anchor="end" font-size="12" fill="var(--ink)">You paid ' + money(paid) + '</text>';
+  // step line: price holds until the next reading
+  let d = "M" + X(ts[0]) + "," + Y(ys[0]);
+  for (let i = 1; i < ts.length; i++) d += " L" + X(ts[i]) + "," + Y(ys[i-1]) + " L" + X(ts[i]) + "," + Y(ys[i]);
+  s += '<path d="' + d + ' L' + X(ts[ts.length-1]) + "," + (H - B) + " L" + X(ts[0]) + "," + (H - B) + ' Z" fill="url(#g)"/>';
+  s += '<path d="' + d + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>';
+  const li = ys.indexOf(Math.min(...ys));
+  s += '<circle cx="' + X(ts[li]) + '" cy="' + Y(ys[li]) + '" r="4.5" fill="var(--good)" stroke="var(--card)" stroke-width="2"/>';
+  s += '<circle cx="' + X(ts[ts.length-1]) + '" cy="' + Y(ys[ys.length-1]) + '" r="5.5" fill="var(--accent)" stroke="var(--card)" stroke-width="2"/>';
+  s += '<line id="vl" y1="' + T + '" y2="' + (H - B) + '" stroke="var(--mute)" opacity="0" stroke-dasharray="3 3"/><circle id="vd" r="5" fill="var(--accent)" stroke="var(--card)" stroke-width="2" opacity="0"/></svg>';
+  const tip = $("tip"); box.innerHTML = s; box.appendChild(tip);
+  const svg = $("cs"), vl = $("vl"), vd = $("vd");
+  const move = ev => {
+    const r = svg.getBoundingClientRect(), cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left, x = cx / r.width * W;
+    let bi = 0, bd = 1e18; ts.forEach((t, i) => { const dd = Math.abs(X(t) - x); if (dd < bd){ bd = dd; bi = i; } });
+    vl.setAttribute("x1", X(ts[bi])); vl.setAttribute("x2", X(ts[bi])); vl.setAttribute("opacity", 1);
+    vd.setAttribute("cx", X(ts[bi])); vd.setAttribute("cy", Y(ys[bi])); vd.setAttribute("opacity", 1);
+    tip.textContent = money(ys[bi]) + " · " + fmtDT(ts[bi]);
+    tip.style.left = Math.min(Math.max(X(ts[bi]) / W * r.width, 70), r.width - 70) + "px"; tip.style.top = (Y(ys[bi]) / H * r.height) + "px"; tip.style.opacity = 1;
+  };
+  const out = () => { vl.setAttribute("opacity", 0); vd.setAttribute("opacity", 0); tip.style.opacity = 0; };
+  svg.addEventListener("mousemove", move); svg.addEventListener("mouseleave", out);
+  svg.addEventListener("touchstart", move, {passive:true}); svg.addEventListener("touchmove", move, {passive:true}); svg.addEventListener("touchend", out);
 }
 
-$("paid").addEventListener("input", e => {
-  const v = parseFloat(e.target.value.replace(/[^\d.]/g, ""));
-  setPaid(isNaN(v) ? "" : v); if (DATA) render();
-});
-window.addEventListener("resize", () => { if (DATA) render(); });
-fetch("prices.json?" + Date.now()).then(r => r.json()).then(d => {
-  DATA = d;
-  const p = getPaid(); if (p) $("paid").value = p;
-  render();
-}).catch(() => { $("sub").innerHTML = '<span class="err">Could not load prices.</span>'; });
+function drawMoves(){
+  const h = DATA.history, ev = [];
+  for (let i = 1; i < h.length; i++) if (h[i].xq !== h[i-1].xq) ev.push({t: h[i].t, from: h[i-1].xq, to: h[i].xq});
+  const ul = $("moves");
+  if (!ev.length){ ul.innerHTML = '<li><span>No price changes yet. Every hourly check is still being recorded.</span></li>'; return; }
+  ul.innerHTML = ev.slice(-8).reverse().map(e => { const d = e.to - e.from;
+    return '<li><div><b>' + money(e.from) + ' → ' + money(e.to) + '</b><br><time>' + fmtDT(e.t) + '</time></div><span class="badge ' + (d < 0 ? "down" : "up") + '">' + (d < 0 ? "▼ " : "▲ ") + money(Math.abs(d)) + '</span></li>'; }).join("");
+}
+
+function drawLadder(paid){
+  const c = (DATA.cabins || []).filter(x => x.class === "BALCONY").sort((a, b) => a.total - b.total).slice(0, 9);
+  $("ladderCard").style.display = c.length ? "" : "none"; if (!c.length) return;
+  const max = Math.max(...c.map(x => x.total), paid || 0) * 1.03, min = 0;
+  $("ladder").innerHTML = c.map(x => {
+    const me = x.category === DATA.category;
+    return '<div class="row' + (me ? " me" : "") + '"><div class="nm">' + esc(x.name) + ' <i>' + esc(x.category) + '</i></div><div class="bar"><span style="width:' + (x.total / max * 100) + '%"></span>' +
+      (paid && me ? '<div class="pd" style="left:' + (paid / max * 100) + '%" title="You paid"></div>' : "") + '</div><b>' + money(x.total) + '</b></div>'; }).join("") +
+    (paid ? '<p class="foot" style="margin-top:8px">Dashed line: what you paid for your category.</p>' : "");
+}
+
+function spark(vals){
+  const v = vals.filter(x => x != null); if (v.length < 2) return "<svg></svg>";
+  const W = 120, H = 30, lo = Math.min(...v), hi = Math.max(...v), r = Math.max(hi - lo, 0.5);
+  const pts = v.map((y, i) => (i / (v.length - 1) * (W - 6) + 3) + "," + (H - 4 - (y - lo) / r * (H - 8))).join(" ");
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="120" height="30"><polyline points="' + pts + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/></svg>';
+}
+function drawAddons(){
+  const h = DATA.history, last = h[h.length-1];
+  const rows = [["Refreshment Package", "refreshment"], ["VOOM Internet", "voom"]];
+  $("addons").innerHTML = '<p class="label">Add-ons, per day</p>' + rows.map(r => '<div class="addon"><span>' + r[0] + '</span>' + spark(h.map(p => p[r[1]])) + '<b>' + money2(last[r[1]]) + '</b></div>').join("");
+}
+
+$("paid").addEventListener("input", e => { const v = parseFloat(e.target.value.replace(/[^\d.]/g, "")); setPaid(isNaN(v) ? "" : v); if (DATA) render(); });
+$("seg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; RANGE = +b.dataset.r;
+  document.querySelectorAll("#seg button").forEach(x => x.classList.toggle("on", x === b)); drawChart(getPaid()); });
+window.addEventListener("resize", () => { if (DATA) drawChart(getPaid()); });
+fetch("prices.json?" + Date.now()).then(r => r.json()).then(d => { DATA = d; const p = getPaid(); if (p) $("paid").value = p; render(); })
+  .catch(() => { $("eyebrow").innerHTML = '<span class="err">Could not load prices.</span>'; });
 </script>
 </body>
 </html>
