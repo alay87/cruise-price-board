@@ -89,6 +89,15 @@ svg{display:block;width:100%;height:auto}
 .star:hover{color:var(--accent2)}
 .favhead{margin:12px 0 2px;padding-top:10px;border-top:1px solid var(--line)}
 .hint{color:var(--mute);font-size:13px;margin:10px 0 0}
+.drops .sum{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.drops .sum span{background:var(--goodbg);color:var(--good);border-radius:999px;padding:4px 12px;font-size:14px;font-weight:600}
+.dr{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:11px 0;border-top:1px solid var(--line)}
+.dr:first-of-type{border-top:0}
+.dr .t{font-weight:600}
+.dr .pct{font:600 22px Georgia,serif;color:var(--good);text-align:right;line-height:1.1}
+.dr .m{color:var(--mute);font-size:13px;grid-column:1/-1}
+.dr .sv{color:var(--good);font-weight:600;font-size:13px;grid-column:1/-1}
+.tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--line);color:var(--mute);border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:1px}
 .foot{color:var(--mute);font-size:13px;margin:6px 4px 0}
 .err{color:var(--bad)}
 @media (max-width:560px){
@@ -169,6 +178,12 @@ svg{display:block;width:100%;height:auto}
 
   <section class="card" id="addons"></section>
 
+  <section class="card drops" id="dropsCard">
+    <p class="label">Add-on price drops</p>
+    <div id="drops"></div>
+    <button class="more" id="dmore" style="display:none"></button>
+  </section>
+
   <section class="card" id="othersCard" style="display:none">
     <p class="label">Everything else on the cruise planner</p>
     <p class="sub">Not bought. Tracked separately so you can spot sales. Compared with the first price seen.</p>
@@ -235,7 +250,7 @@ function render(){
   $("span").textContent = "over " + days + (days === 1 ? " day" : " days");
 
   drawChart(paid);
-  drawMoves(); drawLadder(paid); drawAddons(); drawOthers();
+  drawMoves(); drawLadder(paid); drawAddons(); drawDrops(); drawOthers();
   $("foot").textContent = "Last checked " + fmtDT(last.t) + " · Public Royal Caribbean fare for 2 adults and 2 children, in CAD, taxes and fees included.";
 }
 
@@ -313,7 +328,7 @@ function spark(vals){
 }
 function getFavs(){ try { return JSON.parse(localStorage.getItem("favs") || "[]"); } catch(e){ return []; } }
 function setFavs(a){ try { localStorage.setItem("favs", JSON.stringify(a)); } catch(e){} }
-function toggleFav(id){ const f = getFavs(), i = f.indexOf(id); if (i >= 0) f.splice(i, 1); else f.push(id); setFavs(f); drawAddons(); drawOthers(); }
+function toggleFav(id){ const f = getFavs(), i = f.indexOf(id); if (i >= 0) f.splice(i, 1); else f.push(id); setFavs(f); drawAddons(); drawOthers(); drawDrops(); }
 function itemRow(x, fav){
   const d = x.p - x.f, ch = Math.abs(d) > 0.004, pc = Math.abs((x.p - x.f) / x.f);
   return '<div class="oi"><span class="t"><button class="star' + (fav ? " on" : "") + '" data-id="' + esc(x.id) + '" aria-label="' + (fav ? "Remove from favourites" : "Add to favourites") + '">' + (fav ? "★" : "☆") + '</button>' + esc(x.t) + '</span><span class="pr">' + money2(x.p) +
@@ -329,6 +344,35 @@ function drawAddons(){
   else if ((DATA.others || []).length) html += '<p class="hint">Tap ☆ on any item in the list below to pin it here.</p>';
   $("addons").innerHTML = html;
 }
+
+let DLIM = 6;
+function perUnitNights(u){ u = (u || "").toLowerCase(); return (u.includes("night") || u.includes("day")) ? (DATA.nights || 7) : 0; }
+function drawDrops(){
+  const favs = getFavs(), items = [], h = DATA.history, last = h[h.length-1];
+  [["Refreshment Package", "refreshment"], ["VOOM Internet", "voom"]].forEach(r => {
+    const first = (h.find(p => p[r[1]] != null) || {})[r[1]], cur = last[r[1]];
+    if (first != null && cur != null && cur < first - 0.004) items.push({id: "own-" + r[1], t: r[0], c: "Yours", u: "Per Night", p: cur, f: first, own: true});
+  });
+  (DATA.others || []).forEach(x => { if (x.p < x.f - 0.004) items.push(x); });
+  items.sort((a, b) => (b.f - b.p) / b.f - (a.f - a.p) / a.f);
+  const box = $("drops"), more = $("dmore");
+  if (!items.length){
+    box.innerHTML = '<p class="foot">No add-on price drops yet. Starting prices were recorded on the first run, and drops show here as soon as anything gets cheaper.</p>';
+    more.style.display = "none"; return;
+  }
+  const top = items[0], totalN = items.length;
+  let html = '<div class="sum"><span>' + totalN + (totalN === 1 ? " add-on" : " add-ons") + ' cheaper</span><span>Best: ' + Math.round((top.f - top.p) / top.f * 100) + '% off</span></div>';
+  html += items.slice(0, DLIM).map(x => {
+    const save = x.f - x.p, pct = Math.round(save / x.f * 100), n = perUnitNights(x.u), fav = favs.includes(x.id);
+    const unit = (x.u || "").toLowerCase();
+    return '<div class="dr"><span class="t">' + (x.own ? "" : '<button class="star' + (fav ? " on" : "") + '" data-id="' + esc(x.id) + '" aria-label="Favourite">' + (fav ? "★" : "☆") + '</button>') + esc(x.t) + (x.own ? '<span class="tag">Yours</span>' : "") + '</span>' +
+      '<span class="pct">▼ ' + pct + '%</span>' +
+      '<span class="m">' + (x.own ? '' : esc(x.c) + ' · ') + money2(x.p) + (unit ? " " + esc(unit) : "") + ' · was ' + money2(x.f) + '</span>' +
+      '<span class="sv">Save ' + money2(save) + (n ? " (" + money2(save * n) + " over " + n + " nights)" : "") + '</span></div>'; }).join("");
+  box.innerHTML = html;
+  more.style.display = items.length > DLIM ? "" : "none"; more.textContent = "Show more (" + (items.length - DLIM) + " left)";
+}
+$("dmore").addEventListener("click", () => { DLIM += 10; drawDrops(); });
 
 let OCAT = "All", OMODE = "all", OLIM = 15;
 function drawOthers(){
